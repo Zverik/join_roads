@@ -3,6 +3,7 @@
 #include <ctime>
 #include <map>
 #include <algorithm>
+#include <iostream>
 #include <iomanip>
 
 #include <osmium/io/pbf_input.hpp>
