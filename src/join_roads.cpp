@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -10,6 +10,8 @@
 #include <osmium/io/o5m_input.hpp>
 #include <osmium/handler.hpp>
 #include <osmium/visitor.hpp>
+
+std::uint32_t constexpr kMaxWayId = 500000000;
 
 using TWayId = std::uint32_t;
 using TNodeId = std::uint64_t;
@@ -36,12 +38,6 @@ public:
     std::reverse(m_ways.begin(), m_ways.end());
     for (auto & p : m_ways)
       p.second = !p.second;
-  }
-
-  bool add(osmium::Way const & way)
-  {
-    LineString line(way);
-    return add(line);
   }
 
   bool add(LineString & line)
@@ -76,10 +72,11 @@ public:
 
   void add(osmium::Way const & way)
   {
+    LineString line(way);
     auto found = m_parts.end();
     for (auto i = m_parts.begin(); i != m_parts.end(); ++i)
     {
-      if (i->add(way))
+      if (i->add(line))
       {
         found = i;
         break;
@@ -87,7 +84,7 @@ public:
     }
     if (found == m_parts.cend())
     {
-      m_parts.push_back(LineString(way));
+      m_parts.push_back(line);
     }
     else
     {
@@ -112,12 +109,9 @@ public:
   }
 };
 
-std::uint32_t constexpr kMaxWayId = 497000000;
-
 class RoadHandler : public osmium::handler::Handler
 {
-  using TSegmentKey = std::pair<std::string, std::string>;
-  std::map<TSegmentKey, Segments> m_data;
+  std::unordered_map<std::size_t, Segments> m_data;
   std::uint32_t m_count;
   std::time_t m_startTime;
 
@@ -176,7 +170,7 @@ public:
     if (!foundHighway || (name.empty() && ref.empty()))
       return;
 
-    TSegmentKey key{name, ref};
+    std::size_t key = std::hash<std::string>{}(name + '\0' + ref);
     auto segment = m_data.find(key);
     if (segment == m_data.cend())
       m_data.emplace(key, Segments(way));
