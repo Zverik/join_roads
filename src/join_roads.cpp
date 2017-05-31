@@ -14,7 +14,7 @@
 
 std::uint32_t constexpr kMaxWayId = 500000000;
 
-using TWays = std::deque<std::int32_t>;
+using TWays = std::vector<std::int32_t>;
 
 class LineString
 {
@@ -188,7 +188,15 @@ int main(int argc, char *argv[])
     std::exit(1);
   }
   RoadHandler roadHandler;
-  osmium::io::Reader reader{argv[1], osmium::osm_entity_bits::way};
-  osmium::apply(reader, roadHandler);
+  try
+  {
+    osmium::io::Reader reader{argv[1], osmium::osm_entity_bits::way};
+    osmium::apply(reader, roadHandler);
+  }
+  catch (std::system_error e)
+  {
+    std::cerr << "Failed to open " << argv[1] << ": " << e.what() << std::endl;
+    std::exit(2);
+  }
   roadHandler.print_result();
 }
